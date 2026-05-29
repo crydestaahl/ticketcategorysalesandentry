@@ -1,0 +1,5 @@
+{
+  "name": "Remix: Ticket Dashboard",
+  "description": "A mobile-optimized dashboard for tracking real-time ticket sales and entry statistics for Tickster events.",
+  "requestFramePermissions": []
+}
