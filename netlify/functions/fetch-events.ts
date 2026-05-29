@@ -30,19 +30,32 @@ export const handler = async (event: any) => {
       },
     });
 
+    const responseText = await response.text();
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Tickster Event API error (${response.status}):`, errorText);
+      console.error(`Tickster Event API error (${response.status}):`, responseText);
       return {
         statusCode: response.status,
         body: JSON.stringify({
           error: `Tickster Event API svarade med felkod ${response.status}`,
-          details: errorText,
+          details: responseText,
         }),
       };
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError: any) {
+      console.error("Failed to parse Tickster events response as JSON:", parseError, responseText);
+      return {
+        statusCode: 502,
+        body: JSON.stringify({
+          error: "Tickster returnerade ogiltigt JSON-svar för events",
+          details: responseText,
+        }),
+      };
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify(data),
