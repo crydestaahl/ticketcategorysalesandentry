@@ -57,9 +57,24 @@ export const handler = async (event: any) => {
       };
     }
 
+    const tickets = Array.isArray(data?.tickets)
+      ? data.tickets.map((ticketObj: any) => {
+          const ticket = ticketObj?.ticket || {};
+          return {
+            ticket: {
+              ticketState: ticket.ticketState,
+              validForEntry: ticket.validForEntry,
+              eventName: ticket.eventName,
+              goodsName: ticket.goodsName,
+              section: ticket.section,
+            },
+          };
+        })
+      : [];
+
     return {
       statusCode: 200,
-      body: JSON.stringify(data),
+      body: JSON.stringify({ tickets }),
     };
   } catch (error: any) {
     console.error("Proxy error:", error);
