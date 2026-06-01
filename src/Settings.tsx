@@ -69,7 +69,11 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(settings);
-    localStorage.setItem('tickster_settings', JSON.stringify(settings));
+    const safeSettings = {
+      eogRequestCode: settings.eogRequestCode,
+      eventRequestCode: settings.eventRequestCode,
+    };
+    localStorage.setItem('tickster_settings', JSON.stringify(safeSettings));
   };
 
   return (
