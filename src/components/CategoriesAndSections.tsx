@@ -24,6 +24,7 @@ export default function CategoriesAndSections({
 }: CategoriesAndSectionsProps) {
   const [activeTab, setActiveTab] = useState<'category' | 'section'>('category');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   // Group tickets by target field ("goodsName" or "section")
   const groupedData = useMemo(() => {
@@ -57,6 +58,58 @@ export default function CategoriesAndSections({
         percentage: group.sold > 0 ? (group.admitted / group.sold) * 100 : 0
       }))
       .sort((a, b) => b.sold - a.sold); // Sort by highest sold first
+  }, [tickets, activeTab]);
+
+  const categorySectionBreakdown = useMemo(() => {
+    const breakdown: Record<string, {
+      section: string;
+      sold: number;
+      admitted: number;
+      remaining: number;
+      percentage: number;
+    }[]> = {};
+
+    if (activeTab !== 'category') {
+      return breakdown;
+    }
+
+    const map: Record<string, Record<string, { section: string; sold: number; admitted: number; remaining: number }>> = {};
+
+    tickets.forEach(ticketObj => {
+      const ticket = ticketObj?.ticket;
+      if (!ticket) return;
+
+      const category = ticket.goodsName && ticket.goodsName.trim() !== ''
+        ? ticket.goodsName
+        : 'Ospecificerad biljettyp';
+      const section = ticket.section && ticket.section.trim() !== ''
+        ? ticket.section
+        : 'Ospecificerad sektion';
+
+      if (!map[category]) {
+        map[category] = {};
+      }
+
+      if (!map[category][section]) {
+        map[category][section] = { section, sold: 0, admitted: 0, remaining: 0 };
+      }
+
+      map[category][section].sold += 1;
+      if (ticket.ticketState === 'Used') {
+        map[category][section].admitted += 1;
+      } else if (ticket.ticketState === 'Unused' && ticket.validForEntry) {
+        map[category][section].remaining += 1;
+      }
+    });
+
+    Object.keys(map).forEach(category => {
+      breakdown[category] = Object.values(map[category]).map(sectionGroup => ({
+        ...sectionGroup,
+        percentage: sectionGroup.sold > 0 ? (sectionGroup.admitted / sectionGroup.sold) * 100 : 0,
+      })).sort((a, b) => b.sold - a.sold);
+    });
+
+    return breakdown;
   }, [tickets, activeTab]);
 
   // Filter grouped data based on search
@@ -131,7 +184,7 @@ export default function CategoriesAndSections({
         {/* Tab Controls */}
         <div className="bg-slate-100 p-1.5 rounded-2xl flex relative w-full gap-1 shadow-inner border border-slate-200/50">
           <button
-            onClick={() => { setActiveTab('category'); setSearchTerm(''); }}
+            onClick={() => { setActiveTab('category'); setSearchTerm(''); setExpandedCategory(null); }}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'category'
                 ? 'bg-white text-slate-900 shadow-md shadow-slate-200 border-b border-slate-100'
@@ -142,7 +195,7 @@ export default function CategoriesAndSections({
             Kategorier
           </button>
           <button
-            onClick={() => { setActiveTab('section'); setSearchTerm(''); }}
+            onClick={() => { setActiveTab('section'); setSearchTerm(''); setExpandedCategory(null); }}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'section'
                 ? 'bg-white text-slate-900 shadow-md shadow-slate-200 border-b border-slate-100'
@@ -206,7 +259,14 @@ export default function CategoriesAndSections({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.2 }}
-                  className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3 hover:border-slate-200 transition-colors"
+                  className={`bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-3 transition-colors ${
+                    activeTab === 'category' ? 'hover:border-slate-200 cursor-pointer' : ''
+                  }`}
+                  onClick={() => {
+                    if (activeTab === 'category') {
+                      setExpandedCategory(prev => prev === group.name ? null : group.name);
+                    }
+                  }}
                 >
                   {/* Row Top Details */}
                   <div className="flex justify-between items-start gap-3">
@@ -252,6 +312,40 @@ export default function CategoriesAndSections({
                       <span className="text-emerald-600">{group.percentage.toFixed(0)}%</span>
                     </div>
                   </div>
+
+                  {activeTab === 'category' && expandedCategory === group.name && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="border-t border-slate-100 pt-4"
+                    >
+                      <p className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-3">
+                        Sektioner i {group.name}
+                      </p>
+                      <div className="space-y-3">
+                        {categorySectionBreakdown[group.name]?.length ? (
+                          categorySectionBreakdown[group.name].map((section) => (
+                            <div key={section.section} className="flex items-center justify-between gap-3 rounded-3xl bg-slate-50 p-3">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-800 text-sm truncate" title={section.section}>
+                                  {section.section}
+                                </p>
+                                <p className="text-[11px] text-slate-500">
+                                  {section.admitted} insläppta / {section.sold} sålda
+                                </p>
+                              </div>
+                              <div className="text-right text-[11px] text-slate-500 font-bold">
+                                {section.percentage.toFixed(0)}% insläppta
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-slate-500">Ingen sektionsdata finns för denna kategori.</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               ))
             )}
