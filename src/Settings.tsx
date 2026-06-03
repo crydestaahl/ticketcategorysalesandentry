@@ -6,9 +6,10 @@ import { motion } from 'motion/react';
 interface SettingsProps {
   onSave: (settings: AppSettings) => void;
   initialSettings: AppSettings;
+  texts: Record<string, string>;
 }
 
-export default function Settings({ onSave, initialSettings }: SettingsProps) {
+export default function Settings({ onSave, initialSettings, texts }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
   
   // Load cached events from local storage on mount
@@ -34,8 +35,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
 
   const handleFetchEvents = async () => {
     if (!settings.eogRequestCode || !settings.apikey) {
-      setFetchEventsError("Fyll i Arrangörs ID och API Nyckel först.");
-      return;
+      setFetchEventsError(texts.fillOrganizerAndApi);
     }
     
     setFetchingEvents(true);
@@ -52,7 +52,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.details || errData.error || 'Misslyckades att hämta evenemang');
+        throw new Error(errData.details || errData.error || texts.fetchEventsFailed);
       }
 
       const data = await response.json();
@@ -60,7 +60,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
       setEvents(fetchedItems);
       localStorage.setItem('tickster_events_cache', JSON.stringify(fetchedItems));
     } catch (err: any) {
-      setFetchEventsError(err.message || 'Kunde inte hämta evenemang');
+      setFetchEventsError(err.message || texts.fetchEventsFailed);
     } finally {
       setFetchingEvents(false);
     }
@@ -83,8 +83,8 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
       className="p-6 max-w-md mx-auto space-y-6"
     >
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Inställningar</h1>
-        <p className="text-slate-500">Konfigurera din koppling lokalt</p>
+        <h1 className="text-2xl font-bold text-slate-900">{texts.settingsTitle}</h1>
+        <p className="text-slate-500">{texts.settingsDescription}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -93,11 +93,11 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 mb-1">
               <Building2 className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">1. Arrangör & API-nyckel</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{texts.stageOrganizerApi}</h3>
             </div>
 
             <div className="relative">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">Arrangörs ID (eogRequestCode)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">{texts.labelOrganizerId}</label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
@@ -106,14 +106,14 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
                   value={settings.eogRequestCode}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-semibold text-slate-800 placeholder-slate-400"
-                  placeholder="T.ex. G72XGAEATMY9GUX"
+                  placeholder={texts.placeholderOrganizerId}
                   required
                 />
               </div>
             </div>
 
             <div className="relative">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">API Nyckel</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">{texts.labelApiKey}</label>
               <div className="relative">
                 <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
@@ -122,7 +122,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
                   value={settings.apikey}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-semibold text-slate-800 placeholder-slate-400"
-                  placeholder="Din Tickster API-nyckel"
+                  placeholder={texts.placeholderApiKey}
                   required
                 />
               </div>
@@ -139,12 +139,12 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
                 {fetchingEvents ? (
                   <>
                     <RefreshCcw className="w-4 h-4 animate-spin" />
-                    HÄMTAR EVENEMANG...
+                    {texts.fetchingEvents}
                   </>
                 ) : (
                   <>
                     <Calendar className="w-4 h-4" />
-                    HÄMTA EVENEMANG
+                    {texts.fetchEvents}
                   </>
                 )}
               </button>
@@ -162,13 +162,15 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 mb-1">
               <Calendar className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">2. Välj Evenemang</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{texts.stageSelectEvent}</h3>
             </div>
 
             {/* Dropdown list of events if they are available */}
             {events.length > 0 ? (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block ml-1">Välj från lista ({events.length} st)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block ml-1">
+                  {texts.selectFromList.replace('{count}', events.length.toString())}
+                </label>
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                   <select
@@ -179,7 +181,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
                     }}
                     className="w-full pl-11 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-semibold text-slate-850 appearance-none cursor-pointer"
                   >
-                    <option value="">-- Välj ett evenemang --</option>
+                    <option value="">{texts.selectAnEvent}</option>
                     {events.map((ev) => {
                       const dateStr = ev.startUtc ? new Date(ev.startUtc).toLocaleDateString('sv-SE', {
                         year: 'numeric',
@@ -203,13 +205,13 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
               </div>
             ) : (
               <div className="p-4 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50 text-xs text-slate-450 font-medium">
-                Spara eller fyll i Arrangörs ID & API-nyckel och klicka på "Hämta evenemang" ovan för att välja från din lista.
+                {texts.eventHelpText}
               </div>
             )}
 
             {/* Input field for selected Event ID */}
             <div className="relative">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">Egen inställning: Evenemangs ID (eventRequestCode)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">{texts.eventIdInputLabel}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -217,7 +219,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
                   value={settings.eventRequestCode}
                   onChange={handleChange}
                   className="w-full pl-4 pr-4 py-3 bg-slate-50 hover:bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-semibold text-slate-800 placeholder-slate-400"
-                  placeholder="Insprat ID eller skriv in manuellt..."
+                  placeholder={texts.placeholderManualEventId}
                   required
                 />
               </div>
@@ -228,12 +230,12 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 mb-1">
               <Shield className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Inloggning</h3>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{texts.stageLogin}</h3>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="relative">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">Användarnamn</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">{texts.labelUsername}</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
@@ -242,13 +244,13 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
                     value={settings.username}
                     onChange={handleChange}
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-semibold text-slate-800 placeholder-slate-400"
-                    placeholder="User"
+                    placeholder={texts.usernamePlaceholder}
                     required
                   />
                 </div>
               </div>
               <div className="relative">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">Lösenord</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block ml-1">{texts.labelPassword}</label>
                 <div className="relative">
                   <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <input
@@ -257,7 +259,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
                     value={settings.password}
                     onChange={handleChange}
                     className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all text-sm font-semibold text-slate-800 placeholder-slate-400"
-                    placeholder="Pass"
+                    placeholder={texts.passwordPlaceholder}
                     required
                   />
                 </div>
@@ -271,7 +273,7 @@ export default function Settings({ onSave, initialSettings }: SettingsProps) {
           className="w-full bg-emerald-600 hover:bg-emerald-750 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-200/50 transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
         >
           <Save className="w-5 h-5" />
-          Spara & Tillämpa Inställningar
+          {texts.saveSettings}
         </button>
       </form>
     </motion.div>

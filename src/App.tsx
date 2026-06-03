@@ -3,8 +3,10 @@ import { AppSettings, TicksterResponse } from './types';
 import Dashboard from './components/Dashboard';
 import CategoriesAndSections from './components/CategoriesAndSections';
 import Settings from './Settings';
-import { LayoutDashboard, Settings as SettingsIcon, Layers } from 'lucide-react';
+import { LayoutDashboard, Settings as SettingsIcon, Layers, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+type Language = 'sv' | 'en';
 
 const DEFAULT_SETTINGS: AppSettings = {
   eogRequestCode: '',
@@ -14,9 +16,151 @@ const DEFAULT_SETTINGS: AppSettings = {
   password: '',
 };
 
+const translations = {
+  sv: {
+    navDashboard: 'Dashboard',
+    navCategories: 'Kategori & Sekt.',
+    navSettings: 'Inställningar',
+    toggleLanguage: 'EN',
+    missingFieldsError: 'Vänligen fyll i alla fält i inställningarna.',
+    fetchDataError: 'Kunde inte hämta data',
+    settingsTitle: 'Inställningar',
+    settingsDescription: 'Konfigurera din koppling lokalt',
+    stageOrganizerApi: '1. Arrangör & API-nyckel',
+    labelOrganizerId: 'Arrangörs ID (eogRequestCode)',
+    labelApiKey: 'API Nyckel',
+    placeholderOrganizerId: 'T.ex. G72XGAEATMY9GUX',
+    placeholderApiKey: 'Din Tickster API-nyckel',
+    fetchEvents: 'HÄMTA EVENEMANG',
+    fetchingEvents: 'HÄMTAR EVENEMANG...',
+    fillOrganizerAndApi: 'Fyll i Arrangörs ID och API Nyckel först.',
+    fetchEventsFailed: 'Misslyckades att hämta evenemang',
+    stageSelectEvent: '2. Välj Evenemang',
+    selectFromList: 'Välj från lista ({count} st)',
+    selectAnEvent: '-- Välj ett evenemang --',
+    placeholderManualEventId: 'Insprat ID eller skriv in manuellt...',
+    eventIdInputLabel: 'Egen inställning: Evenemangs ID (eventRequestCode)',
+    usernamePlaceholder: 'User',
+    passwordPlaceholder: 'Pass',
+    stageLogin: '3. Inloggning',
+    labelUsername: 'Användarnamn',
+    labelPassword: 'Lösenord',
+    saveSettings: 'Spara & Tillämpa Inställningar',
+    eventHelpText: 'Spara eller fyll i Arrangörs ID & API-nyckel och klicka på "Hämta evenemang" ovan för att välja från din lista.',
+    dashboardLoading: 'Hämtar biljettdata...',
+    categoriesLoading: 'Hämtar fördelning...',
+    dashboardErrorTitle: 'Ett fel uppstod',
+    tryAgain: 'Försök igen',
+    updated: 'Uppdaterad',
+    never: 'Aldrig',
+    admitted: 'Insläppta',
+    of: 'av',
+    scanned: 'Scannade',
+    sold: 'Sålda',
+    remaining: 'Kvar',
+    latestStatus: 'Senaste status',
+    live: 'Live',
+    totalInSystem: 'Totalt i systemet',
+    allTicketTypes: 'Alla biljettyper',
+    admittedNow: 'Insläppta nu',
+    scannedTickets: 'Scannade biljetter',
+    categorySplitTitle: 'Uppdelning',
+    categorySplitHeading: 'Uppdelning',
+    categorySplitOverview: 'Kategori- & Sektionsfördelning',
+    categoriesTab: 'Kategorier',
+    sectionsTab: 'Sektioner',
+    searchCategoryPlaceholder: 'Sök på kategori...',
+    searchSectionPlaceholder: 'Sök på sektion...',
+    clear: 'Rensa',
+    noMatchesFound: 'Inga matchande resultat hittades',
+    noCategoriesAvailable: 'Inga kategorier tillgängliga',
+    noSectionsAvailable: 'Inga sektioner tillgängliga',
+    viewAll: 'Visa alla',
+    leftToScan: 'st kvar att skanna',
+    sectionDataMissing: 'Ingen sektionsdata finns för denna kategori.',
+    sectionsIn: 'Sektioner i {name}',
+    admittedOfSold: '{admitted} av {sold} insläppta',
+    admittedSold: '{admitted} insläppta / {sold} sålda',
+    admittedPercentage: '{percent}% insläppta',
+    eventFallback: 'Väntar på data...',
+  },
+  en: {
+    navDashboard: 'Dashboard',
+    navCategories: 'Category & Sec.',
+    navSettings: 'Settings',
+    toggleLanguage: 'SV',
+    missingFieldsError: 'Please fill in all settings fields.',
+    fetchDataError: 'Could not fetch data',
+    settingsTitle: 'Settings',
+    settingsDescription: 'Configure your connection locally',
+    stageOrganizerApi: '1. Organizer & API key',
+    labelOrganizerId: 'Organizer ID (eogRequestCode)',
+    labelApiKey: 'API Key',
+    placeholderOrganizerId: 'Ex. G72XGAEATMY9GUX',
+    placeholderApiKey: 'Your Tickster API key',
+    fetchEvents: 'FETCH EVENTS',
+    fetchingEvents: 'FETCHING EVENTS...',
+    fillOrganizerAndApi: 'Fill in Organizer ID and API Key first.',
+    fetchEventsFailed: 'Failed to fetch events',
+    stageSelectEvent: '2. Select Event',
+    selectFromList: 'Choose from list ({count})',
+    selectAnEvent: '-- Select an event --',
+    placeholderManualEventId: 'Paste event ID or type manually...',
+    eventIdInputLabel: 'Custom event ID (eventRequestCode)',
+    usernamePlaceholder: 'User',
+    passwordPlaceholder: 'Pass',
+    stageLogin: '3. Login',
+    labelUsername: 'Username',
+    labelPassword: 'Password',
+    saveSettings: 'Save & Apply Settings',
+    eventHelpText: 'Save or fill in Organizer ID & API Key and click "FETCH EVENTS" above to choose from your list.',
+    dashboardLoading: 'Loading ticket data...',
+    categoriesLoading: 'Loading breakdown...',
+    dashboardErrorTitle: 'An error occurred',
+    tryAgain: 'Try again',
+    updated: 'Updated',
+    never: 'Never',
+    admitted: 'Admitted',
+    of: 'of',
+    scanned: 'Scanned',
+    sold: 'Sold',
+    remaining: 'Remaining',
+    latestStatus: 'Latest status',
+    live: 'Live',
+    totalInSystem: 'Total in system',
+    allTicketTypes: 'All ticket types',
+    admittedNow: 'Admitted now',
+    scannedTickets: 'Scanned tickets',
+    categorySplitTitle: 'Breakdown',
+    categorySplitHeading: 'Breakdown',
+    categorySplitOverview: 'Category & Section breakdown',
+    categoriesTab: 'Categories',
+    sectionsTab: 'Sections',
+    searchCategoryPlaceholder: 'Search category...',
+    searchSectionPlaceholder: 'Search section...',
+    clear: 'Clear',
+    noMatchesFound: 'No matching results found',
+    noCategoriesAvailable: 'No categories available',
+    noSectionsAvailable: 'No sections available',
+    viewAll: 'View all',
+    leftToScan: 'left to scan',
+    sectionDataMissing: 'No section data available for this category.',
+    sectionsIn: 'Sections in {name}',
+    admittedOfSold: '{admitted} of {sold} admitted',
+    admittedSold: '{admitted} admitted / {sold} sold',
+    admittedPercentage: '{percent}% admitted',
+    eventFallback: 'Waiting for data...',
+  },
+} as const;
+
 export default function App() {
   const [view, setView] = useState<'dashboard' | 'categories' | 'settings'>('dashboard');
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [language, setLanguage] = useState<Language>(() => {
+    const saved = localStorage.getItem('tickster_language');
+    return saved === 'en' ? 'en' : 'sv';
+  });
+  const texts = translations[language];
   
   // Lifted state for Ticket database
   const [data, setData] = useState<TicksterResponse | null>(null);
@@ -58,6 +202,10 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('tickster_language', language);
+  }, [language]);
+
   // Cooldown countdown timer
   useEffect(() => {
     if (cooldown > 0) {
@@ -71,7 +219,7 @@ export default function App() {
     if (cooldown > 0) return;
     
     if (!currentSettings.apikey || !currentSettings.eogRequestCode || !currentSettings.eventRequestCode || !currentSettings.username || !currentSettings.password) {
-      setError("Vänligen fyll i alla fält i inställningarna.");
+      setError(texts.missingFieldsError);
       setView('settings');
       return;
     }
@@ -87,7 +235,7 @@ export default function App() {
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.details || errData.error || 'Kunde inte hämta data');
+        throw new Error(errData.details || errData.error || texts.fetchDataError);
       }
 
       const result = await response.json();
@@ -138,6 +286,7 @@ export default function App() {
             >
               <Dashboard 
                 settings={settings} 
+                texts={texts}
                 tickets={tickets} 
                 loading={loading} 
                 error={error} 
@@ -158,6 +307,7 @@ export default function App() {
             >
               <CategoriesAndSections 
                 settings={settings} 
+                texts={texts}
                 tickets={tickets} 
                 loading={loading} 
                 error={error} 
@@ -176,7 +326,7 @@ export default function App() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
             >
-              <Settings onSave={handleSaveSettings} initialSettings={settings} />
+              <Settings onSave={handleSaveSettings} initialSettings={settings} texts={texts} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -193,7 +343,7 @@ export default function App() {
           }`}
         >
           <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[9px] font-bold uppercase tracking-wider">Dashboard</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider">{texts.navDashboard}</span>
         </button>
 
         <button
@@ -213,7 +363,7 @@ export default function App() {
           }`}
         >
           <Layers className="w-5 h-5" />
-          <span className="text-[9px] font-bold uppercase tracking-wider">Kategori & Sekt.</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider">{texts.navCategories}</span>
         </button>
         
         <button
@@ -225,7 +375,15 @@ export default function App() {
           }`}
         >
           <SettingsIcon className="w-5 h-5" />
-          <span className="text-[9px] font-bold uppercase tracking-wider">Inställningar</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider">{texts.navSettings}</span>
+        </button>
+      
+        <button
+          onClick={() => setLanguage(prev => prev === 'sv' ? 'en' : 'sv')}
+          className="flex-none px-3 py-3 rounded-3xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all text-[9px] font-bold uppercase tracking-wider flex items-center gap-2"
+        >
+          <Globe className="w-4 h-4" />
+          {texts.toggleLanguage}
         </button>
       </nav>
     </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 interface CategoriesAndSectionsProps {
   settings: AppSettings;
+  texts: Record<string, string>;
   tickets: TicksterTicket[];
   loading: boolean;
   error: string | null;
@@ -15,6 +16,7 @@ interface CategoriesAndSectionsProps {
 
 export default function CategoriesAndSections({
   settings,
+  texts,
   tickets,
   loading,
   error,
@@ -124,7 +126,7 @@ export default function CategoriesAndSections({
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-4 p-6">
         <RefreshCcw className="w-10 h-10 text-emerald-500 animate-spin" />
-        <p className="text-slate-500 font-medium text-sm">Hämtar fördelning...</p>
+        <p className="text-slate-500 font-medium text-sm">{texts.dashboardLoading}</p>
       </div>
     );
   }
@@ -136,32 +138,32 @@ export default function CategoriesAndSections({
         <div className="bg-red-50 border border-red-100 rounded-3xl p-6 flex flex-col items-center text-center gap-4">
           <AlertCircle className="w-12 h-12 text-red-500" />
           <div>
-            <h3 className="text-lg font-bold text-red-900">Ett fel uppstod</h3>
+            <h3 className="text-lg font-bold text-red-900">{texts.dashboardErrorTitle}</h3>
             <p className="text-sm text-red-700">{error}</p>
           </div>
           <button 
             onClick={fetchData}
             className="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl font-semibold transition-colors"
           >
-            Försök igen
+            {texts.tryAgain}
           </button>
         </div>
       </div>
     );
   }
 
-  const eventName = tickets.length > 0 ? tickets[0].ticket.eventName : "Kategori & Sektion";
+  const eventName = tickets.length > 0 ? tickets[0].ticket.eventName : texts.eventFallback;
 
   return (
     <div className="p-6 space-y-6 max-w-lg mx-auto pb-24">
       {/* Header Section */}
       <div className="flex justify-between items-start">
         <div className="space-y-1">
-          <h1 className="text-xl font-bold text-slate-450 uppercase tracking-wider leading-none">Uppdelning</h1>
+          <h1 className="text-xl font-bold text-slate-450 uppercase tracking-wider leading-none">{texts.categorySplitTitle}</h1>
           <h2 className="text-2xl font-black text-slate-900 leading-tight block">{eventName}</h2>
           <div className="flex items-center gap-2 text-slate-400 text-xs">
             <Clock className="w-3.5 h-3.5" />
-            <span>Uppdaterad: {lastUpdated?.toLocaleTimeString() || 'Aldrig'}</span>
+            <span>{texts.updated}: {lastUpdated?.toLocaleTimeString() || texts.never}</span>
           </div>
         </div>
         <button 
@@ -192,7 +194,7 @@ export default function CategoriesAndSections({
             }`}
           >
             <Layers className="w-4 h-4" />
-            Kategorier
+            {texts.categoriesTab}
           </button>
           <button
             onClick={() => { setActiveTab('section'); setSearchTerm(''); setExpandedCategory(null); }}
@@ -203,7 +205,7 @@ export default function CategoriesAndSections({
             }`}
           >
             <MapPin className="w-4 h-4" />
-            Sektioner
+            {texts.sectionsTab}
           </button>
         </div>
 
@@ -212,7 +214,7 @@ export default function CategoriesAndSections({
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder={activeTab === 'category' ? "Sök på kategori..." : "Sök på sektion..."}
+            placeholder={activeTab === 'category' ? texts.searchCategoryPlaceholder : texts.searchSectionPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-16 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none shadow-sm focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-slate-800 placeholder-slate-400"
@@ -222,7 +224,7 @@ export default function CategoriesAndSections({
               onClick={() => setSearchTerm('')}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 px-2 py-1 hover:bg-slate-50 rounded-lg transition-all"
             >
-              Rensa
+              {texts.clear}
             </button>
           )}
         </div>
@@ -239,14 +241,14 @@ export default function CategoriesAndSections({
               >
                 <Inbox className="w-10 h-10 text-slate-300" />
                 <p className="text-sm font-semibold text-slate-400">
-                  {searchTerm ? 'Inga matchande resultat hittades' : `Inga ${activeTab === 'category' ? 'kategorier' : 'sektioner'} tillgängliga`}
+                  {searchTerm ? texts.noMatchesFound : activeTab === 'category' ? texts.noCategoriesAvailable : texts.noSectionsAvailable}
                 </p>
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}
                     className="text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-all px-3 py-1.5 rounded-lg"
                   >
-                    Visa alla
+                    {texts.viewAll}
                   </button>
                 )}
               </motion.div>
@@ -283,7 +285,7 @@ export default function CategoriesAndSections({
                           {group.name}
                         </p>
                         <p className="text-xs text-slate-400 font-medium">
-                          {group.remaining} st kvar att skanna
+                          {group.remaining} {texts.leftToScan}
                         </p>
                       </div>
                     </div>
@@ -292,7 +294,7 @@ export default function CategoriesAndSections({
                         {group.sold}
                       </span>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">
-                        Sålda
+                        {texts.sold}
                       </span>
                     </div>
                   </div>
@@ -308,7 +310,7 @@ export default function CategoriesAndSections({
                       />
                     </div>
                     <div className="flex justify-between text-[11px] text-slate-400 font-bold">
-                      <span>{group.admitted} av {group.sold} insläppta</span>
+                      <span>{texts.admittedOfSold.replace('{admitted}', group.admitted.toString()).replace('{sold}', group.sold.toString())}</span>
                       <span className="text-emerald-600">{group.percentage.toFixed(0)}%</span>
                     </div>
                   </div>
@@ -321,7 +323,7 @@ export default function CategoriesAndSections({
                       className="border-t border-slate-100 pt-4"
                     >
                       <p className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-3">
-                        Sektioner i {group.name}
+                        {texts.sectionsIn.replace('{name}', group.name)}
                       </p>
                       <div className="space-y-3">
                         {categorySectionBreakdown[group.name]?.length ? (
@@ -332,16 +334,16 @@ export default function CategoriesAndSections({
                                   {section.section}
                                 </p>
                                 <p className="text-[11px] text-slate-500">
-                                  {section.admitted} insläppta / {section.sold} sålda
+                                  {texts.admittedSold.replace('{admitted}', section.admitted.toString()).replace('{sold}', section.sold.toString())}
                                 </p>
                               </div>
                               <div className="text-right text-[11px] text-slate-500 font-bold">
-                                {section.percentage.toFixed(0)}% insläppta
+                                {texts.admittedPercentage.replace('{percent}', section.percentage.toFixed(0))}
                               </div>
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-slate-500">Ingen sektionsdata finns för denna kategori.</p>
+                          <p className="text-sm text-slate-500">{texts.sectionDataMissing}</p>
                         )}
                       </div>
                     </motion.div>
