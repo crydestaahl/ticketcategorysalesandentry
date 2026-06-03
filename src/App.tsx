@@ -3,7 +3,7 @@ import { AppSettings, TicksterResponse } from './types';
 import Dashboard from './components/Dashboard';
 import CategoriesAndSections from './components/CategoriesAndSections';
 import Settings from './Settings';
-import { LayoutDashboard, Settings as SettingsIcon, Layers, Globe } from 'lucide-react';
+import { LayoutDashboard, Settings as SettingsIcon, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 type Language = 'sv' | 'en';
@@ -326,7 +326,7 @@ export default function App() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.15 }}
             >
-              <Settings onSave={handleSaveSettings} initialSettings={settings} texts={texts} />
+              <Settings onSave={handleSaveSettings} initialSettings={settings} texts={texts} language={language} setLanguage={setLanguage} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -376,14 +376,6 @@ export default function App() {
         >
           <SettingsIcon className="w-5 h-5" />
           <span className="text-[9px] font-bold uppercase tracking-wider">{texts.navSettings}</span>
-        </button>
-      
-        <button
-          onClick={() => setLanguage(prev => prev === 'sv' ? 'en' : 'sv')}
-          className="flex-none px-3 py-3 rounded-3xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all text-[9px] font-bold uppercase tracking-wider flex items-center gap-2"
-        >
-          <Globe className="w-4 h-4" />
-          {texts.toggleLanguage}
         </button>
       </nav>
     </div>

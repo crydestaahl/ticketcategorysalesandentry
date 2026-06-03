@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { AppSettings, TicksterEventItem } from './types';
-import { Save, Shield, Key, User, Building2, Calendar, RefreshCcw, AlertCircle } from 'lucide-react';
+import { Save, Shield, Key, User, Building2, Calendar, RefreshCcw, AlertCircle, Globe } from 'lucide-react';
 import { motion } from 'motion/react';
+
+type Language = 'sv' | 'en';
 
 interface SettingsProps {
   onSave: (settings: AppSettings) => void;
   initialSettings: AppSettings;
   texts: Record<string, string>;
+  language: Language;
+  setLanguage: (lang: Language | ((prev: Language) => Language)) => void;
 }
 
-export default function Settings({ onSave, initialSettings, texts }: SettingsProps) {
+export default function Settings({ onSave, initialSettings, texts, language, setLanguage }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
   
   // Load cached events from local storage on mount
@@ -82,9 +86,19 @@ export default function Settings({ onSave, initialSettings, texts }: SettingsPro
       animate={{ opacity: 1, y: 0 }}
       className="p-6 max-w-md mx-auto space-y-6"
     >
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{texts.settingsTitle}</h1>
-        <p className="text-slate-500">{texts.settingsDescription}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{texts.settingsTitle}</h1>
+          <p className="text-slate-500">{texts.settingsDescription}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setLanguage(prev => prev === 'sv' ? 'en' : 'sv')}
+          className="flex-shrink-0 px-3 py-2 rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+        >
+          <Globe className="w-4 h-4" />
+          {texts.toggleLanguage}
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
