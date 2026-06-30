@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppSettings, TicksterEventItem } from './types';
 import { Save, Shield, Key, User, Building2, Calendar, RefreshCcw, AlertCircle, Globe } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -13,33 +13,75 @@ interface SettingsProps {
   setLanguage: (lang: Language | ((prev: Language) => Language)) => void;
 }
 
+const EVENTS_CACHE_KEY = 'tickster_events_cache';
+
+const getEventRequestCode = (event: TicksterEventItem) => {
+  return String(
+    event.eventRequestCode ??
+    event.requestCode ??
+    event.request_code ??
+    event.code ??
+    event.id ??
+    ''
+  );
+};
+
+const readCachedEvents = (eogRequestCode: string): TicksterEventItem[] => {
+  const cached = localStorage.getItem(EVENTS_CACHE_KEY);
+  if (!cached) return [];
+
+  try {
+    const parsed = JSON.parse(cached);
+
+    if (
+      parsed &&
+      !Array.isArray(parsed) &&
+      parsed.eogRequestCode === eogRequestCode &&
+      Array.isArray(parsed.items)
+    ) {
+      return parsed.items;
+    }
+  } catch (e) {
+    console.error("Failed to parse cached events", e);
+  }
+
+  return [];
+};
+
 export default function Settings({ onSave, initialSettings, texts, language, setLanguage }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
   
   // Load cached events from local storage on mount
-  const [events, setEvents] = useState<TicksterEventItem[]>(() => {
-    const cached = localStorage.getItem('tickster_events_cache');
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch (e) {
-        console.error("Failed to parse cached events", e);
-      }
-    }
-    return [];
-  });
+  const [events, setEvents] = useState<TicksterEventItem[]>(() => readCachedEvents(initialSettings.eogRequestCode));
 
   const [fetchingEvents, setFetchingEvents] = useState(false);
   const [fetchEventsError, setFetchEventsError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setSettings(initialSettings);
+    setEvents(readCachedEvents(initialSettings.eogRequestCode));
+  }, [initialSettings]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    if (name === 'eogRequestCode') {
+      setSettings(prev => ({
+        ...prev,
+        eogRequestCode: value,
+        eventRequestCode: value === prev.eogRequestCode ? prev.eventRequestCode : '',
+      }));
+      setEvents(readCachedEvents(value));
+      return;
+    }
+
     setSettings(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFetchEvents = async () => {
     if (!settings.eogRequestCode || !settings.apikey) {
       setFetchEventsError(texts.fillOrganizerAndApi);
+      return;
     }
     
     setFetchingEvents(true);
@@ -62,7 +104,10 @@ export default function Settings({ onSave, initialSettings, texts, language, set
       const data = await response.json();
       const fetchedItems = data.items || [];
       setEvents(fetchedItems);
-      localStorage.setItem('tickster_events_cache', JSON.stringify(fetchedItems));
+      localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify({
+        eogRequestCode: settings.eogRequestCode,
+        items: fetchedItems,
+      }));
     } catch (err: any) {
       setFetchEventsError(err.message || texts.fetchEventsFailed);
     } finally {
@@ -197,6 +242,7 @@ export default function Settings({ onSave, initialSettings, texts, language, set
                   >
                     <option value="">{texts.selectAnEvent}</option>
                     {events.map((ev) => {
+                      const eventRequestCode = getEventRequestCode(ev);
                       const dateStr = ev.startUtc ? new Date(ev.startUtc).toLocaleDateString('sv-SE', {
                         year: 'numeric',
                         month: 'short',
@@ -204,7 +250,7 @@ export default function Settings({ onSave, initialSettings, texts, language, set
                       }) : '';
                       const venueStr = ev.venue?.name ? ` @ ${ev.venue.name}` : '';
                       return (
-                        <option key={ev.id} value={ev.id}>
+                        <option key={`${ev.id ?? eventRequestCode}-${eventRequestCode}`} value={eventRequestCode}>
                           {ev.name} {dateStr || venueStr ? `(${dateStr}${venueStr})` : ''}
                         </option>
                       );

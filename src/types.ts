@@ -38,7 +38,11 @@ export interface AppSettings {
 }
 
 export interface TicksterEventItem {
-  id: string;
+  id?: string;
+  eventRequestCode?: string;
+  requestCode?: string;
+  request_code?: string;
+  code?: string;
   name: string;
   startUtc?: string;
   endUtc?: string;

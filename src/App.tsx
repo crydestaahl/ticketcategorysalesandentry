@@ -7,6 +7,9 @@ import { LayoutDashboard, Settings as SettingsIcon, Layers } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react';
 
 type Language = 'sv' | 'en';
+type FetchOptions = {
+  ignoreCooldown?: boolean;
+};
 
 const DEFAULT_SETTINGS: AppSettings = {
   eogRequestCode: '',
@@ -153,6 +156,34 @@ const translations = {
   },
 } as const;
 
+const TICKET_CACHE_KEY = 'tickster_cache';
+const TICKET_CACHE_TIME_KEY = 'tickster_cache_time';
+const TICKET_CACHE_SETTINGS_KEY = 'tickster_cache_settings_key';
+
+const normalizeSettings = (settings: Partial<AppSettings> | null | undefined): AppSettings => ({
+  ...DEFAULT_SETTINGS,
+  ...(settings ?? {}),
+});
+
+const getSettingsCacheKey = (settings: Pick<AppSettings, 'eogRequestCode' | 'eventRequestCode'>) => {
+  const eogRequestCode = settings.eogRequestCode?.trim();
+  const eventRequestCode = settings.eventRequestCode?.trim();
+
+  if (!eogRequestCode || !eventRequestCode) {
+    return null;
+  }
+
+  return `${eogRequestCode}:${eventRequestCode}`;
+};
+
+const hasCompleteSettings = (settings: AppSettings) => Boolean(
+  settings.apikey &&
+  settings.eogRequestCode &&
+  settings.eventRequestCode &&
+  settings.username &&
+  settings.password
+);
+
 export default function App() {
   const [view, setView] = useState<'dashboard' | 'categories' | 'settings'>('dashboard');
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -164,6 +195,7 @@ export default function App() {
   
   // Lifted state for Ticket database
   const [data, setData] = useState<TicksterResponse | null>(null);
+  const [dataCacheKey, setDataCacheKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -172,12 +204,15 @@ export default function App() {
   // Load initial settings and cached data on mount
   useEffect(() => {
     const saved = localStorage.getItem('tickster_settings');
+    let loadedSettings = DEFAULT_SETTINGS;
     let hasSettings = false;
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setSettings(parsed);
-        if (parsed.apikey && parsed.eogRequestCode && parsed.eventRequestCode && parsed.username && parsed.password) {
+        const parsedSettings = normalizeSettings(parsed);
+        loadedSettings = parsedSettings;
+        setSettings(parsedSettings);
+        if (hasCompleteSettings(parsedSettings)) {
           hasSettings = true;
         }
       } catch (e) {
@@ -190,11 +225,14 @@ export default function App() {
     }
 
     // Load cached tickets
-    const cachedData = localStorage.getItem('tickster_cache');
-    const cachedTime = localStorage.getItem('tickster_cache_time');
-    if (cachedData && cachedTime) {
+    const cachedData = localStorage.getItem(TICKET_CACHE_KEY);
+    const cachedTime = localStorage.getItem(TICKET_CACHE_TIME_KEY);
+    const cachedSettingsKey = localStorage.getItem(TICKET_CACHE_SETTINGS_KEY);
+    const currentSettingsKey = getSettingsCacheKey(loadedSettings);
+    if (cachedData && cachedTime && currentSettingsKey && cachedSettingsKey === currentSettingsKey) {
       try {
         setData(JSON.parse(cachedData));
+        setDataCacheKey(currentSettingsKey);
         setLastUpdated(new Date(parseInt(cachedTime)));
       } catch (e) {
         console.error("Failed to parse cached data", e);
@@ -215,13 +253,26 @@ export default function App() {
   }, [cooldown]);
 
   // Unified ticket fetcher
-  const fetchData = async (currentSettings = settings) => {
-    if (cooldown > 0) return;
+  const fetchData = async (currentSettings = settings, options: FetchOptions = {}) => {
+    if (!options.ignoreCooldown && cooldown > 0) return;
     
-    if (!currentSettings.apikey || !currentSettings.eogRequestCode || !currentSettings.eventRequestCode || !currentSettings.username || !currentSettings.password) {
+    if (!hasCompleteSettings(currentSettings)) {
       setError(texts.missingFieldsError);
       setView('settings');
       return;
+    }
+
+    const requestCacheKey = getSettingsCacheKey(currentSettings);
+    if (!requestCacheKey) {
+      setError(texts.missingFieldsError);
+      setView('settings');
+      return;
+    }
+
+    if (dataCacheKey && dataCacheKey !== requestCacheKey) {
+      setData(null);
+      setDataCacheKey(null);
+      setLastUpdated(null);
     }
 
     setLoading(true);
@@ -242,9 +293,11 @@ export default function App() {
       const now = new Date();
       
       setData(result);
+      setDataCacheKey(requestCacheKey);
       setLastUpdated(now);
-      localStorage.setItem('tickster_cache', JSON.stringify(result));
-      localStorage.setItem('tickster_cache_time', now.getTime().toString());
+      localStorage.setItem(TICKET_CACHE_KEY, JSON.stringify(result));
+      localStorage.setItem(TICKET_CACHE_TIME_KEY, now.getTime().toString());
+      localStorage.setItem(TICKET_CACHE_SETTINGS_KEY, requestCacheKey);
       
       setCooldown(30);
     } catch (err: any) {
@@ -256,20 +309,22 @@ export default function App() {
 
   // Only auto-fetch if setup is finished and we have no loaded data yet
   useEffect(() => {
-    const hasAllSettings = settings.apikey && settings.eogRequestCode && settings.eventRequestCode && settings.username && settings.password;
-    if (hasAllSettings && !data && !loading) {
-      fetchData(settings);
+    const settingsCacheKey = getSettingsCacheKey(settings);
+    if (hasCompleteSettings(settings) && settingsCacheKey && dataCacheKey !== settingsCacheKey && !loading) {
+      fetchData(settings, { ignoreCooldown: true });
     }
-  }, [settings, data]);
+  }, [settings, dataCacheKey, loading]);
 
   const handleSaveSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
     setView('dashboard');
+    setCooldown(0);
     // Force instant refresh after saving settings
-    fetchData(newSettings);
+    fetchData(newSettings, { ignoreCooldown: true });
   };
 
-  const tickets = data?.tickets || [];
+  const currentDataCacheKey = getSettingsCacheKey(settings);
+  const tickets = dataCacheKey === currentDataCacheKey ? data?.tickets || [] : [];
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900">
